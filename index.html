@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Think Out Loud — AI Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet"/>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --ink:#1a1814;--ink2:#4a473f;--ink3:#9c9890;
+  --paper:#faf8f4;--paper2:#f3f0e8;--paper3:#e8e3d8;
+  --accent:#b5390a;--accent2:#d4521a;--accent-soft:#fff3ee;
+  --pro:#5b21b6;--pro2:#7c3aed;--pro-soft:#f5f3ff;--pro-border:#ddd6fe;
+  --border:rgba(26,24,20,0.1);--border2:rgba(26,24,20,0.2);
+  --gold:#92610a;--green:#2d6a2d;
+  --r:10px;--r2:14px;--r3:20px;
+}
+html,body{height:100%;background:var(--paper);}
+body{font-family:'Lora',Georgia,serif;color:var(--ink);overflow-x:hidden;}
+
+/* ── NOISE TEXTURE ── */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:0.3;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:none;}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes shimmer{0%{background-position:-200% center;}100%{background-position:200% center;}}
+@keyframes dot-bounce{0%,80%,100%{transform:scale(0.5);}40%{transform:scale(1);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ══════════════════════════════════════════
+   LANDING PAGE
+══════════════════════════════════════════ */
+#page-landing{
+  min-height:100svh;display:flex;flex-direction:column;
+  background:var(--ink);color:var(--paper);
+  position:relative;overflow:hidden;
+}
+.landing-bg{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 60% 20%,#3a2010 0%,transparent 60%),
+             radial-gradient(ellipse 60% 80% at 20% 80%,#1a1030 0%,transparent 50%),
+             var(--ink);
+}
+.landing-grid{
+  position:absolute;inset:0;
+  background-image:linear-gradient(rgba(250,248,244,0.04) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(250,248,244,0.04) 1px,transparent 1px);
+  background-size:60px 60px;
+}
+.landing-nav{
+  position:relative;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.5rem 3rem;
+}
+.landing-logo{font-family:'Playfair Display',serif;font-size:1.2rem;font-style:italic;color:var(--paper);opacity:0.9;display:flex;align-items:center;gap:8px;}
+.logo-mark{width:8px;height:8px;border-radius:50%;background:var(--accent2);}
+.landing-nav-btns{display:flex;gap:10px;}
+.nav-login-btn{padding:8px 20px;border-radius:var(--r3);font-family:'DM Mono',monospace;font-size:0.78rem;cursor:pointer;transition:all 0.2s;letter-spacing:0.03em;border:1px solid rgba(250,248,244,0.2);background:transparent;color:var(--paper);}
+.nav-login-btn:hover{background:rgba(250,248,244,0.1);}
+.nav-signup-btn{padding:8px 20px;border-radius:var(--r3);font-family:'DM Mono',monospace;font-size:0.78rem;cursor:pointer;transition:all 0.2s;letter-spacing:0.03em;border:none;background:var(--accent2);color:#fff;}
+.nav-signup-btn:hover{background:var(--accent);}
+
+.landing-hero{
+  position:relative;z-index:10;flex:1;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:4rem 2rem;
+}
+.hero-eyebrow{font-family:'DM Mono',monospace;font-size:0.72rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent2);margin-bottom:1.5rem;animation:fadeUp 0.8s ease both;}
+.hero-title{font-family:'Playfair Display',serif;font-size:clamp(3rem,7vw,5.5rem);line-height:1.1;margin-bottom:1.5rem;animation:fadeUp 0.8s 0.1s ease both;}
+.hero-title em{font-style:italic;color:var(--accent2);}
+.hero-sub{max-width:520px;font-size:1.05rem;line-height:1.8;color:rgba(250,248,244,0.65);margin-bottom:2.5rem;animation:fadeUp 0.8s 0.2s ease both;}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;animation:fadeUp 0.8s 0.3s ease both;}
+.hero-cta{padding:13px 32px;border-radius:var(--r3);font-family:'DM Mono',monospace;font-size:0.85rem;cursor:pointer;letter-spacing:0.04em;transition:all 0.2s;border:none;background:var(--accent2);color:#fff;font-weight:500;}
+.hero-cta:hover{background:var(--accent);transform:translateY(-1px);}
+.hero-cta-outline{padding:13px 32px;border-radius:var(--r3);font-family:'DM Mono',monospace;font-size:0.85rem;cursor:pointer;letter-spacing:0.04em;transition:all 0.2s;border:1px solid rgba(250,248,244,0.25);background:transparent;color:var(--paper);}
+.hero-cta-outline:hover{background:rgba(250,248,244,0.08);}
+
+.hero-features{display:flex;gap:2rem;flex-wrap:wrap;justify-content:center;margin-top:3rem;animation:fadeUp 0.8s 0.4s ease both;}
+.hero-feat{display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:0.72rem;color:rgba(250,248,244,0.5);letter-spacing:0.05em;}
+.feat-dot{width:5px;height:5px;border-radius:50%;background:var(--accent2);}
+
+.landing-footer{position:relative;z-index:10;text-align:center;padding:1.5rem;font-family:'DM Mono',monospace;font-size:0.68rem;color:rgba(250,248,244,0.3);}
+
+/* ══════════════════════════════════════════
+   AUTH PAGE (Login / Signup)
+══════════════════════════════════════════ */
+#page-auth{
+  min-height:100svh;display:none;
+  background:var(--paper);
+  align-items:center;justify-content:center;
+  padding:2rem;
+}
+.auth-card{
+  width:100%;max-width:420px;
+  background:var(--paper);border:1px solid var(--border2);
+  border-radius:var(--r2);padding:2.5rem;
+  box-shadow:0 4px 40px rgba(26,24,20,0.08);
+  animation:fadeUp 0.4s ease both;
+}
+.auth-logo{font-family:'Playfair Display',serif;font-size:1.1rem;font-style:italic;color:var(--ink);margin-bottom:2rem;display:flex;align-items:center;gap:7px;}
+.auth-logo .logo-mark{background:var(--accent2);}
+.auth-title{font-size:1.4rem;font-weight:500;margin-bottom:0.4rem;}
+.auth-sub{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--ink3);margin-bottom:1.75rem;}
+.form-group{margin-bottom:1rem;}
+.form-label{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--ink2);display:block;margin-bottom:6px;letter-spacing:0.03em;}
+.form-input{
+  width:100%;padding:10px 13px;font-size:0.95rem;font-family:'Lora',serif;
+  color:var(--ink);background:var(--paper2);
+  border:1px solid var(--border2);border-radius:var(--r);outline:none;
+  transition:border-color 0.15s,box-shadow 0.15s;
+}
+.form-input:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(212,82,26,0.1);}
+.form-input::placeholder{color:var(--ink3);}
+.auth-btn{
+  width:100%;padding:11px;background:var(--ink);color:var(--paper);
+  border:none;border-radius:var(--r);font-family:'DM Mono',monospace;
+  font-size:0.82rem;cursor:pointer;letter-spacing:0.04em;
+  transition:all 0.15s;margin-top:0.5rem;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.auth-btn:hover{background:var(--ink2);}
+.auth-btn:disabled{opacity:0.5;cursor:default;}
+.auth-divider{text-align:center;font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--ink3);margin:1.25rem 0;position:relative;}
+.auth-divider::before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border);}
+.auth-divider span{background:var(--paper);padding:0 12px;position:relative;}
+.auth-switch{text-align:center;font-family:'DM Mono',monospace;font-size:0.73rem;color:var(--ink3);margin-top:1.25rem;}
+.auth-switch a{color:var(--accent);cursor:pointer;text-decoration:none;}
+.auth-switch a:hover{text-decoration:underline;}
+.auth-error{background:#fef2f2;border:1px solid #fca5a5;border-radius:var(--r);padding:10px 13px;font-family:'DM Mono',monospace;font-size:0.75rem;color:#b91c1c;margin-bottom:1rem;display:none;}
+.auth-success{background:#f0fdf4;border:1px solid #86efac;border-radius:var(--r);padding:10px 13px;font-family:'DM Mono',monospace;font-size:0.75rem;color:#15803d;margin-bottom:1rem;display:none;}
+.back-link{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--ink3);cursor:pointer;margin-bottom:1.5rem;display:inline-flex;align-items:center;gap:5px;}
+.back-link:hover{color:var(--ink2);}
+
+/* ══════════════════════════════════════════
+   MAIN APP
+══════════════════════════════════════════ */
+#page-app{display:none;flex-direction:column;min-height:100svh;}
+
+/* NAV */
+.app-nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0.9rem 2rem;border-bottom:1px solid var(--border);
+  background:var(--paper);position:sticky;top:0;z-index:100;
+}
+.app-logo{font-family:'Playfair Display',serif;font-size:1rem;font-style:italic;color:var(--ink);display:flex;align-items:center;gap:7px;}
+.nav-tabs{display:flex;gap:2px;background:var(--paper3);border-radius:var(--r3);padding:3px;}
+.nav-tab{padding:6px 16px;border-radius:20px;font-size:0.75rem;letter-spacing:0.04em;font-family:'DM Mono',monospace;border:none;cursor:pointer;background:none;color:var(--ink3);transition:all 0.18s;}
+.nav-tab.active{background:var(--paper);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,0.09);}
+.nav-right{display:flex;align-items:center;gap:8px;}
+.user-email{font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--ink3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pro-badge{font-family:'DM Mono',monospace;font-size:0.65rem;background:var(--pro2);color:#fff;padding:3px 9px;border-radius:20px;}
+.free-badge{font-family:'DM Mono',monospace;font-size:0.65rem;background:var(--paper3);color:var(--ink3);padding:3px 9px;border-radius:20px;}
+.upgrade-btn{font-family:'DM Mono',monospace;font-size:0.7rem;background:var(--pro2);color:#fff;border:none;border-radius:20px;padding:5px 12px;cursor:pointer;transition:opacity 0.15s;}
+.upgrade-btn:hover{opacity:0.85;}
+.signout-btn{font-family:'DM Mono',monospace;font-size:0.7rem;background:none;border:1px solid var(--border2);color:var(--ink3);border-radius:20px;padding:5px 12px;cursor:pointer;transition:all 0.15s;}
+.signout-btn:hover{background:var(--paper2);}
+
+/* PAGES */
+.app-page{display:none;flex:1;animation:fadeIn 0.25s ease;}
+.app-page.active{display:flex;flex-direction:column;}
+
+/* WRITE */
+.write-wrap{max-width:660px;width:100%;margin:0 auto;padding:3rem 2rem 7rem;display:flex;flex-direction:column;gap:1.5rem;flex:1;}
+.write-date{font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--ink3);letter-spacing:0.1em;text-transform:uppercase;}
+.write-title{font-family:'Playfair Display',serif;font-size:2rem;line-height:1.25;border:none;background:transparent;color:var(--ink);width:100%;outline:none;resize:none;overflow:hidden;min-height:1.3em;}
+.write-title::placeholder{color:var(--ink3);}
+.write-divider{height:1px;background:var(--border);}
+.write-body{font-family:'Lora',serif;font-size:1.05rem;line-height:1.9;color:var(--ink);background:transparent;border:none;outline:none;width:100%;resize:none;min-height:340px;caret-color:var(--accent);}
+.write-body::placeholder{color:var(--ink3);font-style:italic;}
+.write-footer{position:fixed;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;background:rgba(250,248,244,0.92);backdrop-filter:blur(8px);border-top:1px solid var(--border);}
+.write-meta{display:flex;align-items:center;gap:12px;}
+.wc{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--ink3);}
+.limit-pill{font-family:'DM Mono',monospace;font-size:0.68rem;padding:3px 10px;border-radius:20px;background:var(--paper3);color:var(--ink3);}
+.limit-pill.warn{background:#fef3c7;color:#92400e;}
+.limit-pill.full{background:#fee2e2;color:#991b1b;}
+.save-btn{display:flex;align-items:center;gap:7px;background:var(--ink);color:var(--paper);border:none;border-radius:var(--r3);padding:9px 22px;font-family:'DM Mono',monospace;font-size:0.78rem;cursor:pointer;transition:all 0.15s;}
+.save-btn:hover{background:var(--ink2);}
+.save-btn.saved{background:var(--paper3);color:var(--ink2);}
+
+/* ENTRIES */
+.entries-wrap{max-width:700px;width:100%;margin:0 auto;padding:2.5rem 2rem 4rem;display:flex;flex-direction:column;flex:1;}
+.section-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:2rem;}
+.section-title{font-family:'Playfair Display',serif;font-size:1.4rem;}
+.section-sub{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--ink3);}
+.entry-card{padding:1.4rem 0;border-bottom:1px solid var(--border);cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:start;transition:opacity 0.15s;}
+.entry-card:hover{opacity:0.75;}
+.entry-card:hover .ec-title{color:var(--accent);}
+.ec-title{font-size:1.05rem;font-weight:500;margin-bottom:0.4rem;transition:color 0.15s;line-height:1.4;}
+.ec-preview{font-size:0.88rem;color:var(--ink3);line-height:1.65;font-style:italic;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.ec-meta{font-family:'DM Mono',monospace;font-size:0.67rem;color:var(--ink3);text-align:right;white-space:nowrap;}
+.ec-wc{display:inline-block;margin-top:5px;background:var(--paper3);border-radius:10px;padding:2px 8px;font-family:'DM Mono',monospace;font-size:0.63rem;color:var(--ink3);}
+.empty-state{text-align:center;padding:5rem 2rem;color:var(--ink3);}
+.empty-icon{font-size:2rem;margin-bottom:12px;opacity:0.25;}
+.empty-text{font-style:italic;font-size:0.95rem;}
+
+/* ENTRY MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(26,24,20,0.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem;animation:fadeIn 0.2s;}
+.modal-card{background:var(--paper);border-radius:var(--r2);max-width:620px;width:100%;max-height:88svh;overflow-y:auto;padding:2rem;position:relative;box-shadow:0 12px 48px rgba(0,0,0,0.18);}
+.modal-x{position:absolute;top:1rem;right:1rem;background:var(--paper3);border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;color:var(--ink2);display:flex;align-items:center;justify-content:center;font-size:1rem;}
+.modal-date{font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--ink3);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.08em;}
+.modal-title{font-family:'Playfair Display',serif;font-size:1.5rem;margin-bottom:1rem;line-height:1.3;}
+.modal-body{font-size:0.97rem;line-height:1.9;color:var(--ink2);white-space:pre-wrap;}
+.modal-footer{margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);display:flex;justify-content:flex-end;}
+.delete-btn{background:none;border:1px solid #fca5a5;color:#b91c1c;border-radius:var(--r);padding:6px 14px;font-size:0.78rem;cursor:pointer;font-family:'DM Mono',monospace;}
+.delete-btn:hover{background:#fef2f2;}
+
+/* INSIGHTS */
+.insights-wrap{max-width:700px;width:100%;margin:0 auto;padding:2.5rem 2rem 4rem;display:flex;flex-direction:column;gap:1.5rem;flex:1;}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.stat-box{background:var(--paper2);border:1px solid var(--border);border-radius:var(--r2);padding:1.1rem 1.2rem;}
+.stat-lbl{font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--ink3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;}
+.stat-val{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--ink);}
+.stat-unit{font-size:0.7rem;color:var(--ink3);font-family:'DM Mono',monospace;}
+.activity-box{background:var(--paper2);border:1px solid var(--border);border-radius:var(--r2);padding:1.2rem 1.4rem;}
+.activity-lbl{font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--ink3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1rem;}
+.bars{display:flex;gap:5px;align-items:flex-end;height:56px;}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;}
+.bar{width:100%;border-radius:3px 3px 0 0;min-height:3px;}
+.bar-lbl{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--ink3);}
+.pro-lock-banner{background:var(--pro-soft);border:1px solid var(--pro-border);border-radius:var(--r2);padding:1.1rem 1.4rem;display:flex;align-items:center;gap:14px;}
+.plb-icon{font-size:1.3rem;}
+.plb-text{flex:1;}
+.plb-title{font-size:0.9rem;font-weight:500;color:var(--pro2);margin-bottom:2px;}
+.plb-sub{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--ink3);}
+.plb-btn{background:var(--pro2);color:#fff;border:none;border-radius:var(--r);padding:8px 15px;font-family:'DM Mono',monospace;font-size:0.72rem;cursor:pointer;white-space:nowrap;transition:opacity 0.15s;}
+.plb-btn:hover{opacity:0.85;}
+.reflect-box{background:var(--accent-soft);border:1px solid #fcd9c0;border-radius:var(--r2);padding:1.1rem 1.4rem;display:flex;align-items:center;gap:14px;}
+.rb-icon{font-size:1.4rem;}
+.rb-text{flex:1;}
+.rb-title{font-size:0.95rem;font-weight:500;color:var(--accent);margin-bottom:2px;}
+.rb-sub{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--gold);}
+.reflect-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--r);padding:8px 16px;font-family:'DM Mono',monospace;font-size:0.75rem;cursor:pointer;white-space:nowrap;transition:opacity 0.15s;}
+.reflect-btn:hover{opacity:0.85;}
+.reflect-btn:disabled{opacity:0.5;cursor:default;}
+.insight-result{background:var(--paper);border:1px solid var(--border);border-radius:var(--r2);padding:1.5rem;animation:fadeIn 0.3s;}
+.ir-header{display:flex;align-items:center;gap:8px;margin-bottom:1rem;font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--ink3);text-transform:uppercase;letter-spacing:0.09em;}
+.ir-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+.ir-text{font-size:0.97rem;line-height:1.9;color:var(--ink);white-space:pre-wrap;}
+.loading-dots{display:inline-flex;gap:4px;align-items:center;}
+.loading-dots span{width:5px;height:5px;border-radius:50%;background:var(--ink3);animation:dot-bounce 1.2s infinite;display:inline-block;}
+.loading-dots span:nth-child(2){animation-delay:0.2s;}
+.loading-dots span:nth-child(3){animation-delay:0.4s;}
+
+/* ── PAYWALL MODAL ── */
+.paywall-overlay{position:fixed;inset:0;background:rgba(26,24,20,0.55);z-index:600;display:flex;align-items:center;justify-content:center;padding:1rem;animation:fadeIn 0.2s;}
+.paywall-card{background:var(--paper);border-radius:var(--r2);max-width:440px;width:100%;overflow:hidden;box-shadow:0 16px 56px rgba(0,0,0,0.22);position:relative;}
+.paywall-top{background:linear-gradient(135deg,var(--pro) 0%,var(--pro2) 100%);padding:2rem 2rem 1.5rem;text-align:center;}
+.pw-glyph{font-size:2rem;margin-bottom:0.75rem;}
+.pw-title{font-family:'Playfair Display',serif;font-size:1.3rem;font-style:italic;color:#fff;margin-bottom:0.3rem;}
+.pw-sub{font-family:'DM Mono',monospace;font-size:0.68rem;color:rgba(255,255,255,0.65);letter-spacing:0.06em;}
+.paywall-body{padding:1.5rem 2rem 2rem;}
+.pw-features{display:flex;flex-direction:column;gap:10px;margin-bottom:1.5rem;}
+.pw-feat{display:flex;align-items:center;gap:10px;font-size:0.9rem;}
+.pw-check{width:22px;height:22px;border-radius:50%;background:var(--pro-soft);border:1px solid var(--pro-border);display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:var(--pro2);flex-shrink:0;}
+.pw-price-row{display:flex;align-items:baseline;gap:6px;margin-bottom:1.25rem;}
+.pw-price{font-family:'Playfair Display',serif;font-size:2.2rem;color:var(--pro2);}
+.pw-period{font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--ink3);}
+.pw-note{font-family:'DM Mono',monospace;font-size:0.67rem;color:var(--ink3);margin-left:auto;}
+.pw-pay-btn{width:100%;padding:13px;background:var(--pro2);color:#fff;border:none;border-radius:var(--r);font-family:'DM Mono',monospace;font-size:0.85rem;cursor:pointer;letter-spacing:0.04em;transition:opacity 0.15s;margin-bottom:10px;}
+.pw-pay-btn:hover{opacity:0.87;}
+.pw-pay-btn:disabled{opacity:0.5;cursor:default;}
+.pw-dismiss{display:block;width:100%;text-align:center;font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--ink3);cursor:pointer;background:none;border:none;padding:4px;}
+.pw-dismiss:hover{color:var(--ink2);}
+.pw-x{position:absolute;top:0.7rem;right:0.7rem;background:rgba(255,255,255,0.18);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.9rem;}
+
+/* TOAST */
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);border-radius:var(--r3);padding:10px 22px;font-family:'DM Mono',monospace;font-size:0.78rem;z-index:9000;animation:fadeUp 0.3s;white-space:nowrap;pointer-events:none;}
+
+/* SPINNER */
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ LANDING ══════════════ -->
+<div id="page-landing" style="display:flex;">
+  <div class="landing-bg"></div>
+  <div class="landing-grid"></div>
+  <nav class="landing-nav">
+    <div class="landing-logo"><span class="logo-mark"></span>Think Out Loud</div>
+    <div class="landing-nav-btns">
+      <button class="nav-login-btn" onclick="showAuth('login')">Sign in</button>
+      <button class="nav-signup-btn" onclick="showAuth('signup')">Get started free</button>
+    </div>
+  </nav>
+  <div class="landing-hero">
+    <div class="hero-eyebrow">✦ AI-powered journaling</div>
+    <h1 class="hero-title">Where your thoughts<br><em>find their patterns</em></h1>
+    <p class="hero-sub">Write freely every day. Our AI quietly reads your entries and surfaces the patterns, emotions, and themes you didn't notice yourself.</p>
+    <div class="hero-btns">
+      <button class="hero-cta" onclick="showAuth('signup')">Start writing free →</button>
+      <button class="hero-cta-outline" onclick="showAuth('login')">I have an account</button>
+    </div>
+    <div class="hero-features">
+      <div class="hero-feat"><span class="feat-dot"></span>5 entries free / month</div>
+      <div class="hero-feat"><span class="feat-dot"></span>AI pattern insights</div>
+      <div class="hero-feat"><span class="feat-dot"></span>Private & secure</div>
+      <div class="hero-feat"><span class="feat-dot"></span>No ads ever</div>
+    </div>
+  </div>
+  <div class="landing-footer">© 2025 Think Out Loud · Made with care</div>
+</div>
+
+<!-- ══════════════ AUTH ══════════════ -->
+<div id="page-auth" style="display:none;min-height:100svh;background:var(--paper2);align-items:center;justify-content:center;padding:2rem;">
+  <div class="auth-card">
+    <div class="auth-logo"><span class="logo-mark"></span>Think Out Loud</div>
+    <div class="auth-error" id="auth-error"></div>
+    <div class="auth-success" id="auth-success"></div>
+
+    <!-- LOGIN FORM -->
+    <form id="form-login" onsubmit="handleLogin();return false;">
+      <div class="auth-title">Welcome back</div>
+      <div class="auth-sub">Sign in to continue writing</div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="login-email" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <button class="auth-btn" id="login-btn" type="submit">
+        <span>Sign in</span>
+      </button>
+      <div class="auth-switch">No account? <a onclick="switchAuth('signup')">Create one free →</a></div>
+      <div class="auth-switch" style="margin-top:6px;"><a onclick="showAuth('landing')" style="color:var(--ink3);">← Back to home</a></div>
+    </form>
+
+    <!-- SIGNUP FORM -->
+    <form id="form-signup" style="display:none;" onsubmit="handleSignup();return false;">
+      <div class="auth-title">Start your journal</div>
+      <div class="auth-sub">Free · No credit card required</div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="signup-email" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" id="signup-password" placeholder="Min. 6 characters" autocomplete="new-password"/>
+      </div>
+      <button class="auth-btn" id="signup-btn" type="submit">
+        <span>Create account</span>
+      </button>
+      <div class="auth-switch">Already have an account? <a onclick="switchAuth('login')">Sign in →</a></div>
+      <div class="auth-switch" style="margin-top:6px;"><a onclick="showAuth('landing')" style="color:var(--ink3);">← Back to home</a></div>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN APP ══════════════ -->
+<div id="page-app" style="display:none;flex-direction:column;min-height:100svh;">
+  <nav class="app-nav">
+    <div class="app-logo"><span class="logo-mark"></span>Think Out Loud</div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchTab('write',this)">Write</button>
+      <button class="nav-tab" onclick="switchTab('entries',this)">Entries</button>
+      <button class="nav-tab" onclick="switchTab('insights',this)">Insights</button>
+    </div>
+    <div class="nav-right" id="nav-right"></div>
+  </nav>
+
+  <!-- WRITE TAB -->
+  <div class="app-page active" id="tab-write">
+    <div class="write-wrap">
+      <div class="write-date" id="write-date"></div>
+      <textarea class="write-title" id="write-title" placeholder="What's on your mind today?" rows="1" oninput="autoResize(this);onType();"></textarea>
+      <div class="write-divider"></div>
+      <textarea class="write-body" id="write-body" placeholder="Just start writing… there's no right way to do this." oninput="onType();"></textarea>
+    </div>
+    <div class="write-footer">
+      <div class="write-meta">
+        <span class="wc" id="wc">0 words</span>
+        <span class="limit-pill" id="limit-pill" style="display:none;"></span>
+      </div>
+      <button class="save-btn" id="save-btn" onclick="saveEntry()">✦ Save entry</button>
+    </div>
+  </div>
+
+  <!-- ENTRIES TAB -->
+  <div class="app-page" id="tab-entries">
+    <div class="entries-wrap">
+      <div class="section-header">
+        <div class="section-title">Your journal</div>
+        <div class="section-sub" id="entries-sub"></div>
+      </div>
+      <div id="entries-list"></div>
+    </div>
+  </div>
+
+  <!-- INSIGHTS TAB -->
+  <div class="app-page" id="tab-insights">
+    <div class="insights-wrap">
+      <div>
+        <div class="section-title" style="font-family:'Playfair Display',serif;">Patterns & reflections</div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--ink3);margin-top:4px;">AI reads your entries and surfaces what you might not notice</div>
+      </div>
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="activity-box" id="activity-box" style="display:none;">
+        <div class="activity-lbl">Writing activity — last 7 days</div>
+        <div class="bars" id="bars"></div>
+      </div>
+      <div id="pro-banner"></div>
+      <div class="reflect-box">
+        <div class="rb-icon">✦</div>
+        <div class="rb-text">
+          <div class="rb-title">Reflect with AI</div>
+          <div class="rb-sub" id="reflect-sub">Analyse your recent entries for patterns</div>
+        </div>
+        <button class="reflect-btn" id="reflect-btn" onclick="handleReflect()">Reflect →</button>
+      </div>
+      <div id="insight-out"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ENTRY DETAIL MODAL -->
+<div class="modal-overlay" id="entry-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="m-title" onclick="if(event.target.id==='entry-modal')closeModal()">
+  <div class="modal-card">
+    <button class="modal-x" onclick="closeModal()" aria-label="Close entry">✕</button>
+    <div class="modal-date" id="m-date"></div>
+    <div class="modal-title" id="m-title"></div>
+    <div class="modal-body" id="m-body"></div>
+    <div class="modal-footer"><button class="delete-btn" id="m-del">Delete entry</button></div>
+  </div>
+</div>
+
+<!-- PAYWALL MODAL -->
+<div class="paywall-overlay" id="paywall" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="pw-title" onclick="if(event.target.id==='paywall')closePW()">
+  <div class="paywall-card">
+    <button class="pw-x" onclick="closePW()" aria-label="Close paywall">✕</button>
+    <div class="paywall-top">
+      <div class="pw-glyph">✦</div>
+      <div class="pw-title" id="pw-title">Unlock Think Out Loud Pro</div>
+      <div class="pw-sub">YOUR FULL INNER WORLD, UNRESTRICTED</div>
+    </div>
+    <div class="paywall-body">
+      <div class="pw-features">
+        <div class="pw-feat"><div class="pw-check">∞</div>Unlimited entries (free = 5/month)</div>
+        <div class="pw-feat"><div class="pw-check">✦</div>Unlimited AI reflections & pattern insights</div>
+        <div class="pw-feat"><div class="pw-check">↓</div>Export your journal as PDF</div>
+        <div class="pw-feat"><div class="pw-check">☁</div>Cloud sync & priority support</div>
+      </div>
+      <div class="pw-price-row">
+        <span class="pw-price">₹299</span>
+        <span class="pw-period">/ month</span>
+        <span class="pw-note">Cancel anytime</span>
+      </div>
+      <button class="pw-pay-btn" id="pw-pay-btn" onclick="startPayment()">Pay with Razorpay →</button>
+      <button class="pw-dismiss" onclick="closePW()">Maybe later</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════
+const SUPABASE_URL  = 'https://gqlfprcrbfbybxlkpekk.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxbGZwcmNyYmZieWJ4bGtwZWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNTE2NDksImV4cCI6MjA5NDgyNzY0OX0.S-9_408_FSN3LrqdQwJnqPJ-pm4Jz172_JoHzge5s-Y';
+const FREE_LIMIT    = 5;
+const API_BASE      = '/api';
+
+// ── Init Supabase ──
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let currentUser = null;
+let entries     = [];
+let isPro       = false;
+
+// ══════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════
+const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const SDAYS  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const pad2   = n=> String(n).padStart(2,'0');
+const localISO = d=> `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+const today  = ()=> localISO(new Date());
+const asText = v=> v == null ? '' : String(v);
+const wc     = s=> { s=asText(s).trim(); return s ? s.split(/\s+/).length : 0; };
+const entryText = e=> `${asText(e?.title)} ${asText(e?.body)}`;
+const totWds = ()=> entries.reduce((a,e)=>a+wc(entryText(e)),0);
+const thisM  = ()=> { const m=today().slice(0,7); return entries.filter(e=>asText(e.date).startsWith(m)); };
+const esc    = s=> asText(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+const parseISODate = iso=>{ const [y,m,d]=asText(iso).split('-').map(Number); return new Date(y||1970,(m||1)-1,d||1); };
+const fmtD   = iso=>{ const d=parseISODate(iso); return `${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; };
+const fmtS   = iso=>{ const d=parseISODate(iso); return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0,3)}`; };
+const readJSON = async res=> {
+  const text = await res.text();
+  if(!text) return {};
+  try { return JSON.parse(text); }
+  catch { throw new Error('Server returned an invalid response.'); }
+};
+
+async function getAuthToken(){
+  const { data:{ session }, error } = await sb.auth.getSession();
+  if(error) throw error;
+  if(!session?.access_token) throw new Error('Please sign in again.');
+  return session?.access_token || null;
+}
+
+function toast(msg){
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
+}
+function autoResize(el){ el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
+function setLoading(btn, loading, text){
+  btn.disabled=loading;
+  btn.innerHTML=loading ? '<span class="spinner"></span>' : `<span>${text}</span>`;
+}
+
+// ══════════════════════════════════════════
+// PAGE ROUTING
+// ══════════════════════════════════════════
+function showLanding(){ document.getElementById('page-landing').style.display='flex'; document.getElementById('page-auth').style.display='none'; document.getElementById('page-app').style.display='none'; }
+function showAuthPage(){ document.getElementById('page-landing').style.display='none'; document.getElementById('page-auth').style.display='flex'; document.getElementById('page-app').style.display='none'; }
+function showApp(){ document.getElementById('page-landing').style.display='none'; document.getElementById('page-auth').style.display='none'; document.getElementById('page-app').style.display='flex'; }
+
+function showAuth(target){
+  if(target==='landing'){ showLanding(); return; }
+  showAuthPage();
+  if(target==='signup') switchAuth('signup'); else switchAuth('login');
+}
+function switchAuth(form){
+  document.getElementById('form-login').style.display  = form==='login'  ? '' : 'none';
+  document.getElementById('form-signup').style.display = form==='signup' ? '' : 'none';
+  clearAuthMsg();
+}
+function clearAuthMsg(){
+  ['auth-error','auth-success'].forEach(id=>{ const el=document.getElementById(id); el.style.display='none'; el.textContent=''; });
+}
+function showAuthError(msg){ const e=document.getElementById('auth-error'); e.textContent=msg; e.style.display=''; document.getElementById('auth-success').style.display='none'; }
+function showAuthSuccess(msg){ const s=document.getElementById('auth-success'); s.textContent=msg; s.style.display=''; document.getElementById('auth-error').style.display='none'; }
+
+// ══════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════
+async function handleLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-password').value;
+  if(!email||!pass){ showAuthError('Please fill in all fields.'); return; }
+  const btn=document.getElementById('login-btn');
+  setLoading(btn,true,''); clearAuthMsg();
+  try{
+    const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+    if(error) throw error;
+    await onLogin(data.user);
+  }catch(e){
+    showAuthError(e.message || 'Could not sign in.');
+    setLoading(btn,false,'Sign in');
+  }
+}
+
+async function handleSignup(){
+  const email=document.getElementById('signup-email').value.trim();
+  const pass=document.getElementById('signup-password').value;
+  if(!email||!pass){ showAuthError('Please fill in all fields.'); return; }
+  if(pass.length<6){ showAuthError('Password must be at least 6 characters.'); return; }
+  const btn=document.getElementById('signup-btn');
+  setLoading(btn,true,''); clearAuthMsg();
+  try{
+    const {data,error}=await sb.auth.signUp({email,password:pass});
+    if(error) throw error;
+    if(data.user && !data.session){
+      showAuthSuccess('Check your email to confirm your account, then sign in!');
+      setLoading(btn,false,'Create account');
+    } else if(data.user){
+      await onLogin(data.user);
+    }
+  }catch(e){
+    showAuthError(e.message || 'Could not create account.');
+    setLoading(btn,false,'Create account');
+  }
+}
+
+async function onLogin(user){
+  currentUser=user;
+  try{
+    await loadUserData();
+    showApp();
+    initApp();
+  }catch(e){
+    currentUser=null;
+    throw e;
+  }
+}
+
+async function handleSignout(){
+  const {error}=await sb.auth.signOut();
+  if(error){ toast(error.message || 'Could not sign out.'); return; }
+  currentUser=null; entries=[]; isPro=false;
+  showLanding();
+}
+
+// ══════════════════════════════════════════
+// DATA (Supabase)
+// ══════════════════════════════════════════
+async function loadUserData(){
+  const {data:ents,error:entriesError}=await sb.from('entries').select('*').eq('user_id',currentUser.id).order('date',{ascending:false});
+  if(entriesError) throw entriesError;
+  entries=(ents||[]).map(e=>({
+    ...e,
+    title: asText(e.title) || 'Untitled',
+    body: asText(e.body),
+    date: asText(e.date)
+  }));
+
+  const {data:profile,error:profileError}=await sb.from('profiles').select('is_pro').eq('id',currentUser.id).maybeSingle();
+  if(profileError) throw profileError;
+  isPro=profile?.is_pro||false;
+}
+
+async function persistEntry(entry){
+  if(entry.id){
+    const {error}=await sb.from('entries')
+      .update({title:entry.title,body:entry.body,updated_at:new Date().toISOString()})
+      .eq('id',entry.id)
+      .eq('user_id',currentUser.id);
+    if(error) throw error;
+    return entry;
+  } else {
+    const {data,error}=await sb.from('entries')
+      .insert({user_id:currentUser.id,date:entry.date,title:entry.title,body:entry.body})
+      .select()
+      .single();
+    if(error) throw error;
+    return {...entry,...data};
+  }
+}
+
+async function removeEntry(id){
+  const {error}=await sb.from('entries').delete().eq('id',id).eq('user_id',currentUser.id);
+  if(error) throw error;
+}
+
+
+// ══════════════════════════════════════════
+// APP INIT
+// ══════════════════════════════════════════
+function initApp(){
+  document.getElementById('write-date').textContent = fmtD(today()).toUpperCase();
+  updateWC(); renderNavRight(); updateLimitPill();
+}
+
+function renderNavRight(){
+  const el=document.getElementById('nav-right');
+  const email=currentUser?.email||'';
+  el.innerHTML=`
+    <span class="user-email">${esc(email)}</span>
+    ${isPro
+      ? `<span class="pro-badge">✦ PRO</span>`
+      : `<span class="free-badge">${Math.max(0,FREE_LIMIT-thisM().length)} left</span>
+         <button class="upgrade-btn" onclick="openPW()">Upgrade ↑</button>`}
+    <button class="signout-btn" onclick="handleSignout()">Sign out</button>`;
+}
+
+function updateWC(){
+  const n=wc(document.getElementById('write-title').value+' '+document.getElementById('write-body').value);
+  document.getElementById('wc').textContent=n+(n===1?' word':' words');
+}
+
+function updateLimitPill(){
+  const pill=document.getElementById('limit-pill');
+  if(isPro){ pill.style.display='none'; return; }
+  const used=thisM().length, left=FREE_LIMIT-used;
+  pill.style.display='';
+  pill.textContent=`${used}/${FREE_LIMIT} entries this month`;
+  pill.className='limit-pill'+(left<=1?' warn':'')+(left<=0?' full':'');
+}
+
+function onType(){
+  updateWC();
+  const btn=document.getElementById('save-btn');
+  btn.textContent='✦ Save entry'; btn.className='save-btn';
+  btn.disabled=false;
+}
+
+// ══════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════
+function switchTab(name,btn){
+  document.querySelectorAll('.app-page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='entries') renderEntries();
+  if(name==='insights') renderInsights();
+}
+
+// ══════════════════════════════════════════
+// SAVE
+// ══════════════════════════════════════════
+async function saveEntry(){
+  const title=document.getElementById('write-title').value.trim();
+  const body=document.getElementById('write-body').value.trim();
+  if(!title&&!body) return;
+  const t=today();
+  const existing=entries.findIndex(e=>e.date===t);
+  if(!isPro && existing<0 && thisM().length>=FREE_LIMIT){ openPW(); return; }
+  const btn=document.getElementById('save-btn');
+  btn.innerHTML='<span class="spinner" style="border-color:rgba(250,248,244,0.3);border-top-color:#faf8f4;"></span>';
+  btn.disabled=true;
+  const entry=existing>=0 ? {...entries[existing],title:title||'Untitled',body} : {date:t,title:title||'Untitled',body};
+  try{
+    const saved=await persistEntry(entry);
+    if(existing>=0) entries[existing]=saved; else entries.unshift(saved);
+    btn.textContent='✓ Saved'; btn.className='save-btn saved';
+    setTimeout(()=>{ btn.textContent='✦ Save entry'; btn.className='save-btn'; },2200);
+    updateLimitPill(); renderNavRight();
+  }catch(e){
+    btn.textContent='Save failed';
+    btn.className='save-btn';
+    toast(e.message || 'Could not save entry.');
+  }finally{
+    btn.disabled=false;
+  }
+}
+
+// ══════════════════════════════════════════
+// ENTRIES
+// ══════════════════════════════════════════
+function renderEntries(){
+  const list=document.getElementById('entries-list'), sub=document.getElementById('entries-sub');
+  list.innerHTML='';
+  if(!entries.length){
+    sub.textContent='';
+    list.innerHTML='<div class="empty-state"><div class="empty-icon">✦</div><div class="empty-text">Your journal is empty.<br>Start writing on the Write tab.</div></div>';
+    return;
+  }
+  sub.textContent=entries.length+' entr'+(entries.length===1?'y':'ies')+' · '+totWds().toLocaleString('en-IN')+' words';
+
+  entries.forEach(e=>{
+    const title=asText(e.title) || 'Untitled';
+    const body=asText(e.body);
+    const card=document.createElement('div');
+    card.className='entry-card';
+    card.addEventListener('click',()=>openModal(e.id));
+    card.innerHTML=`
+      <div>
+        <div class="ec-title">${esc(title)}</div>
+        <div class="ec-preview">${esc(body.slice(0,140))}${body.length>140?'…':''}</div>
+        <span class="ec-wc">${wc(title+' '+body)} words</span>
+      </div>
+      <div class="ec-meta">${fmtS(e.date)}</div>`;
+    list.appendChild(card);
+  });
+}
+
+function openModal(id){
+  const e=entries.find(x=>x.id==id); if(!e) return;
+  document.getElementById('m-date').textContent=fmtD(e.date).toUpperCase();
+  document.getElementById('m-title').textContent=asText(e.title) || 'Untitled';
+  document.getElementById('m-body').textContent=asText(e.body);
+  document.getElementById('m-del').onclick=()=>deleteEntry(e.id);
+  document.getElementById('entry-modal').style.display='flex';
+  document.querySelector('#entry-modal .modal-x').focus();
+}
+
+function closeModal(){
+  document.getElementById('entry-modal').style.display='none';
+}
+
+async function deleteEntry(id){
+  if(!confirm('Delete this entry?')) return;
+  try{
+    await removeEntry(id);
+    entries=entries.filter(e=>e.id!=id);
+    closeModal();
+    renderEntries(); renderNavRight(); updateLimitPill();
+  }catch(e){
+    toast(e.message || 'Could not delete entry.');
+  }
+}
+
+// ══════════════════════════════════════════
+// INSIGHTS
+// ══════════════════════════════════════════
+function calcStreak(){
+  if(!entries.length) return 0;
+  const dates=new Set(entries.map(e=>e.date)); let s=0,d=new Date();
+  while(true){ const iso=localISO(d); if(dates.has(iso)){s++;d.setDate(d.getDate()-1);}else break; }
+  return s;
+}
+
+function renderInsights(){
+  const n=entries.length,tw=totWds(),streak=calcStreak();
+  document.getElementById('stats-grid').innerHTML=`
+    <div class="stat-box"><div class="stat-lbl">Entries</div><div class="stat-val">${n}<span class="stat-unit"> total</span></div></div>
+    <div class="stat-box"><div class="stat-lbl">Words</div><div class="stat-val">${tw.toLocaleString('en-IN')}<span class="stat-unit"> written</span></div></div>
+    <div class="stat-box"><div class="stat-lbl">Streak</div><div class="stat-val">${streak}<span class="stat-unit"> day${streak!==1?'s':''}</span></div></div>`;
+
+  const ab=document.getElementById('activity-box');
+  if(n>0){
+    ab.style.display='';
+    const days=[];
+    for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const iso=localISO(d); const e=entries.find(x=>x.date===iso); days.push({l:SDAYS[d.getDay()],w:e?wc(entryText(e)):0}); }
+    const mx=Math.max(...days.map(d=>d.w),1);
+    document.getElementById('bars').innerHTML=days.map(d=>{ const h=Math.max(3,Math.round((d.w/mx)*48)); return `<div class="bar-col"><div class="bar" style="height:${h}px;background:${d.w>0?'var(--accent)':'var(--paper3)'}" title="${d.w} words"></div><span class="bar-lbl">${d.l}</span></div>`; }).join('');
+  } else { ab.style.display='none'; }
+
+  document.getElementById('pro-banner').innerHTML=!isPro
+    ? `<div class="pro-lock-banner"><div class="plb-icon">🔒</div><div class="plb-text"><div class="plb-title">AI Insights is a Pro feature</div><div class="plb-sub">Upgrade to unlock unlimited reflections</div></div><button class="plb-btn" onclick="openPW()">Upgrade ↑</button></div>`
+    : '';
+
+  const rb=document.getElementById('reflect-btn'), rs=document.getElementById('reflect-sub');
+  if(n<2){ rs.textContent='Write at least 2 entries to unlock'; rb.disabled=true; }
+  else{ rs.textContent=`Analyse your ${Math.min(n,10)} most recent entries`; rb.disabled=false; }
+}
+
+function handleReflect(){ if(!isPro){ openPW(); } else { runInsights(); } }
+
+function buildLocalInsights(){
+  if(!entries.length) return ['No entries yet. Write a few entries and reflect again.'];
+  const wordCount = totWds();
+  const avg = Math.round(wordCount / entries.length) || 0;
+  const allText = entries.map(entryText).join(' ').toLowerCase();
+  const keywords = ['stress','anxiety','happy','sad','work','family','love','sleep','dream','goal','change','health','travel','focus','time','creative','motivation','confidence'];
+  const found = [...new Set(keywords.filter(w=>allText.includes(w)))].slice(0,4);
+  const streak = calcStreak();
+  const recentTitles = entries.slice(0,Math.min(3,entries.length)).map(e=>asText(e.title)?`"${asText(e.title)}"`:'"Untitled"').join(', ');
+  const lines = [];
+  lines.push(`You have written ${entries.length} entr${entries.length===1?'y':'ies'} totaling ${wordCount} words.`);
+  lines.push(`Your entries average about ${avg} words each.`);
+  if(found.length){
+    lines.push(`Common themes include ${found.join(', ')}.`);
+    lines.push(`You often write about ${found[0]}, which could be worth exploring further.`);
+  } else {
+    lines.push('Your writing feels varied, with no strong repeated topic yet.');
+  }
+  if(streak>1){
+    lines.push(`Nice streak: ${streak} days in a row.`);
+  } else {
+    lines.push('Try writing again tomorrow to build momentum.');
+  }
+  if(recentTitles){
+    lines.push(`Recent entry titles include ${recentTitles}.`);
+  }
+  lines.push('What would you like to explore in your next entry?');
+  return lines;
+}
+
+async function runInsights(){
+  const btn=document.getElementById('reflect-btn'), out=document.getElementById('insight-out');
+  btn.disabled=true; btn.textContent='Thinking…';
+  out.innerHTML=`<div class="insight-result"><div class="ir-header"><span class="ir-dot"></span>Reading your entries</div><div class="ir-text"><span class="loading-dots"><span></span><span></span><span></span></span></div></div>`;
+
+  try{
+    const token = await getAuthToken();
+    const response = await fetch(`${API_BASE}/reflect`, {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        Authorization:`Bearer ${token}`
+      },
+      body: JSON.stringify({ entries: entries.slice(0,10).map(e => ({ title: asText(e.title), body: asText(e.body), date: asText(e.date) })) })
+    });
+    const data = await readJSON(response);
+    if(!response.ok){
+      throw new Error(data.error || 'Unable to generate insights.');
+    }
+    out.innerHTML=`<div class="insight-result"><div class="ir-header"><span class="ir-dot"></span>AI reflection · ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</div><div class="ir-text">${esc(data.text)}</div></div>`;
+  }catch(e){
+    out.innerHTML=`<div class="insight-result"><div class="ir-header"><span class="ir-dot"></span>Error</div><div class="ir-text">Something went wrong. ${esc(e.message || 'Try again.')}</div></div>`;
+  }
+  btn.disabled=false; btn.textContent='Reflect again →';
+}
+
+// ══════════════════════════════════════════
+// PAYWALL + RAZORPAY
+// ══════════════════════════════════════════
+function openPW(){ document.getElementById('paywall').style.display='flex'; }
+function closePW(){ document.getElementById('paywall').style.display='none'; }
+
+function wireGlobalEvents(){
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Escape') return;
+    closeModal();
+    closePW();
+  });
+}
+
+async function startPayment(){
+  const btn=document.getElementById('pw-pay-btn');
+  btn.disabled=true; btn.textContent='Opening Razorpay…';
+  try{
+    const token = await getAuthToken();
+    const res = await fetch(`${API_BASE}/razorpay/create-order`, {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        Authorization:`Bearer ${token}`
+      }
+    });
+    const data = await readJSON(res);
+    if(!res.ok){ throw new Error(data.error || 'Payment setup failed'); }
+
+    const options = {
+      key: data.key_id,
+      order_id: data.order.id,
+      amount: data.order.amount,
+      currency: 'INR',
+      name: 'Think Out Loud',
+      description: 'Pro — 1 month unlimited',
+      theme: { color: '#5b21b6' },
+      handler: async function(response){
+        await finalizePayment(response);
+      },
+      modal: { ondismiss: ()=>{ btn.disabled=false; btn.textContent='Pay with Razorpay →'; } }
+    };
+
+    const rzp=new Razorpay(options);
+    rzp.on('payment.failed', r=>{ alert('Payment failed: '+r.error.description); btn.disabled=false; btn.textContent='Pay with Razorpay →'; });
+    rzp.open();
+  }catch(e){
+    alert('Could not open Razorpay. ' + (e.message || 'Try again.'));
+    btn.disabled=false; btn.textContent='Pay with Razorpay →';
+  }
+}
+
+async function finalizePayment(response){
+  const btn=document.getElementById('pw-pay-btn');
+  try{
+    const token = await getAuthToken();
+    const res = await fetch(`${API_BASE}/razorpay/verify`, {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        Authorization:`Bearer ${token}`
+      },
+      body: JSON.stringify(response)
+    });
+    const data = await readJSON(res);
+    if(!res.ok){ throw new Error(data.error || 'Verification failed'); }
+
+    isPro=true; closePW(); renderNavRight(); updateLimitPill();
+    toast('✦ Welcome to Pro! AI insights are now unlocked.');
+    if(document.getElementById('tab-insights').classList.contains('active')) renderInsights();
+  }catch(e){
+    alert('Payment verification failed: '+(e.message || 'Try again.'));
+  }finally{
+    btn.disabled=false; btn.textContent='Pay with Razorpay →';
+  }
+}
+
+// ══════════════════════════════════════════
+// BOOT — check existing session
+// ══════════════════════════════════════════
+(async()=>{
+  wireGlobalEvents();
+  try{
+    const {data:{session},error}=await sb.auth.getSession();
+    if(error) throw error;
+    if(session?.user){
+      currentUser=session.user;
+      await loadUserData();
+      showApp();
+      initApp();
+    } else {
+      showLanding();
+    }
+  }catch(e){
+    toast(e.message || 'Could not load your session.');
+    showLanding();
+  }
+  // listen for auth changes
+  sb.auth.onAuthStateChange(async(event,session)=>{
+    if(event==='SIGNED_IN'&&session?.user&&!currentUser){
+      try{
+        currentUser=session.user;
+        await loadUserData();
+        showApp();
+        initApp();
+      }catch(e){
+        toast(e.message || 'Could not load your journal.');
+      }
+    } else if(event==='SIGNED_OUT'){
+      currentUser=null; entries=[]; isPro=false;
+      showLanding();
+    }
+  });
+})();
+</script>
+</body>
+</html>
