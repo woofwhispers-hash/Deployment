@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Sitemap: https://deployment-puce-nu.vercel.app/sitemap.xml
