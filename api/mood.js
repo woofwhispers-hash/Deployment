@@ -1,7 +1,5 @@
 export const config = { runtime: 'edge' };
 
-const FALLBACK = { mood: 'neutral', confidence: 0.5, valence: 'neutral', energy: 'medium', emotions: [] };
-
 export default async function handler(req) {
   const cors = {
     'Access-Control-Allow-Origin': '*',
@@ -14,35 +12,47 @@ export default async function handler(req) {
 
   try {
     const { text } = await req.json();
-    if (!text || text.trim().length < 20) return new Response(JSON.stringify(FALLBACK), { headers: cors });
+    if (!text?.trim()) return new Response(JSON.stringify({ mood: 'neutral', confidence: 0 }), { headers: cors });
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 120,
-        system: 'Respond ONLY with valid JSON. No explanation, no markdown, no extra text whatsoever.',
-        messages: [{
-          role: 'user',
-          content: `Analyse the emotional tone of this text. Return ONLY this JSON object:
-{"mood":"ONE_OF[joyful,content,calm,hopeful,grateful,excited,confused,anxious,tired,sad,frustrated,angry,neutral]","confidence":0.0,"valence":"positive|negative|neutral","energy":"high|medium|low","emotions":["word1","word2"]}
+    const GEMINI_KEY = process.env.GEMINI_API_KEY;
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Analyze the emotional tone of this journal entry excerpt and respond with ONLY a JSON object.
 
-Text: "${text.slice(0, 500)}"`,
-        }],
-      }),
-    });
+Respond with exactly this format, nothing else:
+{"mood": "MOOD_WORD", "confidence": 0.XX}
 
-    if (!res.ok) return new Response(JSON.stringify(FALLBACK), { headers: cors });
+Where MOOD_WORD is one of: joyful, content, grateful, excited, calm, peaceful, reflective, confused, anxious, tired, sad, melancholy, frustrated, angry, neutral
+
+Where confidence is between 0.0 and 1.0.
+
+Journal text: "${text.slice(0, 400)}"`
+            }]
+          }],
+          generationConfig: { maxOutputTokens: 50, temperature: 0.1 }
+        })
+      }
+    );
+
+    if (!res.ok) return new Response(JSON.stringify({ mood: 'neutral', confidence: 0 }), { headers: cors });
+
     const data = await res.json();
-    let parsed = FALLBACK;
-    try { parsed = JSON.parse(data.content?.[0]?.text?.trim() || '{}'); } catch {}
-    return new Response(JSON.stringify(parsed), { headers: cors });
-  } catch {
-    return new Response(JSON.stringify(FALLBACK), { headers: cors });
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    return new Response(JSON.stringify({
+      mood: parsed.mood || 'neutral',
+      confidence: parsed.confidence || 0
+    }), { headers: cors });
+  } catch (err) {
+    // Silently fail — mood detection is non-critical
+    return new Response(JSON.stringify({ mood: 'neutral', confidence: 0 }), { headers: cors });
   }
 }
