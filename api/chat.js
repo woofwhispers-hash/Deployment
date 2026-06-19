@@ -1,73 +1,63 @@
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { messages, entryContext, recentEntries } = req.body;
-    if (!messages?.length) return res.status(400).json({ error: 'No messages provided' });
+        const { messages, systemPrompt } = req.body;
+        if (!messages || !Array.isArray(messages)) {
+                return res.status(400).json({ error: 'messages array is required' });
+        }
 
-    let contextBlock = '';
-    if (entryContext) {
-      contextBlock = `\n\nJournal entry being discussed:\nTitle: ${entryContext.title||'Untitled'}\nDate: ${entryContext.date}\nMood: ${entryContext.mood||'not set'}\nTags: ${(entryContext.tags||[]).join(', ')||'none'}\n\n${(entryContext.body||'').slice(0,1000)}\n`;
-    } else if (recentEntries?.length) {
-      contextBlock = `\n\nUser's recent journal entries:\n` +
-        recentEntries.map(e => `[${e.date}] ${e.title||'Untitled'} (mood: ${e.mood||'not set'}): ${(e.body||'').slice(0,200)}`).join('\n');
-    }
+      const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
 
-    const systemPrompt = `You are a compassionate, thoughtful journal companion helping people process their thoughts and emotions.${contextBlock}
+      const system = systemPrompt || `You are a compassionate journaling companion called "Think Out Loud".
+      Your role is to:
+      - Help users explore their thoughts and feelings through gentle questions
+      - Offer empathetic reflections without judgment
+      - Encourage deeper self-understanding
+      - Keep responses concise (2-3 sentences) unless the user asks for more
+      - Never give clinical advice or diagnoses
+      - Be warm, genuine, and supportive`;
 
-Guidelines:
-- Listen actively and reflect back what you hear with empathy
-- Ask one thoughtful open-ended question at a time
-- Help explore feelings without projecting emotions
-- Be warm and conversational, never clinical or preachy
-- Keep responses to 80-130 words unless real depth is needed
-- Reference the journal entry specifically when relevant
-- You are not a therapist — if someone expresses serious distress, gently encourage professional support`;
+      const contents = [];
+        contents.push({ role: 'user', parts: [{ text: `[System context]: ${system}` }] });
+        contents.push({ role: 'model', parts: [{ text: `Understood. I'm here as your journaling companion.` }] });
 
-    const geminiContents = [
-      { role: 'user', parts: [{ text: systemPrompt }] },
-      { role: 'model', parts: [{ text: 'Understood. I\'m here as your thoughtful journal companion, ready to listen and explore your thoughts with you.' }] }
-    ];
-
-    const recentMsgs = messages.slice(-12);
-    for (const m of recentMsgs) {
-      geminiContents.push({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }]
-      });
-    }
-
-    const GEMINI_KEY = process.env.GEMINI_API_KEY;
-    if (!GEMINI_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set' });
-
-    const aiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: geminiContents,
-          generationConfig: { maxOutputTokens: 300, temperature: 0.8 }
-        })
+      for (const msg of messages) {
+              const role = msg.role === 'assistant' ? 'model' : 'user';
+              contents.push({ role, parts: [{ text: msg.content }] });
       }
-    );
 
-    if (!aiRes.ok) {
-      const err = await aiRes.json().catch(() => ({}));
-      return res.status(500).json({ error: err.error?.message || `AI error ${aiRes.status}` });
-    }
+      const response = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                              contents,
+                              generationConfig: { temperature: 0.8, maxOutputTokens: 400 }
+                  })
+        }
+            );
 
-    const data = await aiRes.json();
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if (!reply) return res.status(500).json({ error: 'No AI response generated' });
+      if (!response.ok) {
+              const err = await response.text();
+              console.error('Gemini chat error:', err);
+              return res.status(500).json({ error: 'AI service error', details: err });
+      }
 
-    return res.status(200).json({ reply });
+      const data = await response.json();
+        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        if (!reply) return res.status(500).json({ error: 'Empty response from AI' });
+
+      return res.status(200).json({ reply });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+        console.error('chat error:', err);
+        return res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 }
