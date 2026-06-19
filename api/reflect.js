@@ -1,65 +1,55 @@
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { entries } = req.body;
-    if (!entries?.length) return res.status(400).json({ error: 'No entries provided' });
+        const { entry, mood } = req.body;
+        if (!entry) return res.status(400).json({ error: 'Entry text is required' });
 
-    const text = entries
-      .map(e => `Date: ${e.date}\nMood: ${e.mood || 'not set'}\nTags: ${(e.tags||[]).join(', ')||'none'}\nTitle: ${e.title||'Untitled'}\n\n${e.body||''}`)
-      .join('\n\n---\n\n');
+      const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
 
-    const GEMINI_KEY = process.env.GEMINI_API_KEY;
-    if (!GEMINI_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set' });
+      const prompt = `You are a warm, empathetic journaling companion. A user has written the following journal entry${mood ? ` while feeling ${mood}` : ''}:
 
-    const aiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `You are a thoughtful, empathetic journal companion helping people understand their own patterns through writing.
+      "${entry}"
 
-Be warm but honest. Use second person naturally. Reference specific content from their actual entries.
+      Please provide a thoughtful, supportive reflection (3-4 sentences) that:
+      - Acknowledges their feelings without judgment
+      - Highlights something meaningful or insightful from what they wrote
+      - Offers a gentle question or thought to deepen their self-understanding
+      - Feels personal and human, not generic
 
-Write in flowing paragraphs (no bullet points, no headers):
-1. One sentence naming the overall emotional theme you noticed
-2. Two or three specific patterns with evidence from their actual writing
-3. Any emotional shift or growth you can see across entries
-4. One open, curious question to prompt deeper reflection
+      Keep your tone warm and conversational.`;
 
-Keep to 220-280 words total.
+      const response = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                              contents: [{ parts: [{ text: prompt }] }],
+                              generationConfig: { temperature: 0.8, maxOutputTokens: 300 }
+                  })
+        }
+            );
 
-Journal entries to reflect on:
-
-${text}
-
-Please reflect on these journal entries.`
-            }]
-          }],
-          generationConfig: { maxOutputTokens: 700, temperature: 0.72 }
-        })
+      if (!response.ok) {
+              const err = await response.text();
+              console.error('Gemini error:', err);
+              return res.status(500).json({ error: 'AI service error', details: err });
       }
-    );
 
-    if (!aiRes.ok) {
-      const err = await aiRes.json().catch(() => ({}));
-      return res.status(500).json({ error: err.error?.message || `AI error ${aiRes.status}` });
-    }
+      const data = await response.json();
+        const reflection = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        if (!reflection) return res.status(500).json({ error: 'Empty response from AI' });
 
-    const data = await aiRes.json();
-    const insight = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if (!insight) return res.status(500).json({ error: 'No AI response generated' });
-
-    return res.status(200).json({ insight });
+      return res.status(200).json({ reflection });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+        console.error('reflect error:', err);
+        return res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 }
